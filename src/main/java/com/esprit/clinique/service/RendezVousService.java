@@ -1,20 +1,25 @@
 package com.esprit.clinique.service;
 
-import com.esprit.clinique.entities.*;
+import com.esprit.clinique.entities.Medecin;
+import com.esprit.clinique.entities.Patient;
+import com.esprit.clinique.entities.RendezVous;
+import com.esprit.clinique.entities.Specialite;
 import com.esprit.clinique.repository.MedecinRepository;
 import com.esprit.clinique.repository.PatientRepository;
 import com.esprit.clinique.repository.RendezVousRepository;
-import com.esprit.clinique.service.interfaces.ICrudService;
 import com.esprit.clinique.service.interfaces.IRendezVousService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import java.util.Date;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RendezVousService implements IRendezVousService {
 
     private final RendezVousRepository rendezVousRepository;
@@ -61,4 +66,25 @@ public class RendezVousService implements IRendezVousService {
     public int getNbrRendezVousMedecin(Long idMedecin) {
         return rendezVousRepository.countRendezVousByMedecin_Id(idMedecin);
     }
+
+    @Override
+    public String calcul(Long id ,Date startDate, Date endDate) {
+
+         List<RendezVous> rendezVous = rendezVousRepository.findByMedecin_IdAndDateRdvBetween(id ,startDate,endDate);
+         String name = "";
+         Integer prix = 0;
+            if (!rendezVous.isEmpty()){
+                prix = rendezVous.get(0).getMedecin().getPrix();
+                name = rendezVous.get(0).getMedecin().getNom();
+            }
+            return "Le revenu du médecin "+ name +" est = "+ prix * rendezVous.size() + " dt";
+    }
+
+
+    @Scheduled(fixedRate = 30000)
+    public void retrieveRendezVous(){
+       List<RendezVous> rendezVous =  rendezVousRepository.findByDateRdvBefore(new Date());
+       rendezVous.forEach(r -> log.info("La liste des rendez-vous : {} : Medecin : {} : Patient : {}",r.getDateRdv(), r.getMedecin().getNom() , r.getPatient().getNom() ));
+    }
+
 }
